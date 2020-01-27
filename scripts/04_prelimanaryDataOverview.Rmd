@@ -1,0 +1,243 @@
+---
+title: "Data exploration"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+    self_contained: true
+---
+
+
+
+```{r include=FALSE}
+
+library(tidyverse)
+library(labelled)
+library(knitr)
+library(visdat)
+library(scales)
+library(kableExtra)
+theme_set(theme_bw())
+
+```
+
+```{r include=FALSE}
+d <- read_rds("../../Data/01_preprocessed.rds")
+```
+## Variable overview
+
+```{r}
+glimpse(d)
+```
+```{r}
+d %>% summary()
+```
+
+
+## Life satisfaction
+```{r}
+d2 <- d %>% 
+  select(Zufriedenheit_allgLeben) %>% 
+    group_by(Zufriedenheit_allgLeben) %>% 
+  tally() 
+```
+
+```{r}
+  ggplot(d2, aes(x = Zufriedenheit_allgLeben, y = n, label = n)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) + 
+  coord_flip() + 
+  labs(x ="Life satisfaction (0 = very low, 10 = very high)", y = "n")
+```
+
+## Study regions
+
+```{r}
+d2 <- d %>% 
+  select(Meta_Studienregion) %>% 
+  group_by(Meta_Studienregion) %>% 
+  tally(); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Meta_Studienregion, y = n, label = n)) +
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5))+ 
+  coord_flip()
+```
+
+
+## Age
+
+```{r}
+ggplot(d, aes(x = Person_Alter)) + 
+  geom_histogram(binwidth = 1)
+```
+
+```{r}
+d %>% select(Person_Alter) %>% summary()
+```
+
+
+## Gender
+
+```{r}
+d2 <- d %>% 
+  select(Person_Gender) %>% 
+  group_by(Person_Gender) %>% 
+  tally() %>%
+  filter(!is.na(Person_Gender)) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_Gender, y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) +
+  coord_flip()
+```
+
+
+
+## Residence security
+
+```{r}
+d2 <- d %>% 
+  select(Person_Aufenhaltssicherheit) %>% 
+  group_by(Person_Aufenhaltssicherheit) %>% 
+  tally() %>%
+  filter(!is.na(Person_Aufenhaltssicherheit)) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_Aufenhaltssicherheit, y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) + 
+  coord_flip()
+```
+
+
+## Children
+
+```{r}
+d2 <- d %>% 
+  select(Person_Kinder) %>% 
+  group_by(Person_Kinder) %>% 
+  tally() %>%
+  filter(!is.na(Person_Kinder)) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_Kinder, y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) + 
+  coord_flip()
+```
+
+## Single houshold
+
+
+```{r}
+d2 <- d %>% 
+  select(Person_Einzelhaushalt ) %>% 
+  group_by(Person_Einzelhaushalt ) %>% 
+  tally() %>%
+  filter(!is.na(Person_Einzelhaushalt )) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_Einzelhaushalt , y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) + 
+  coord_flip()
+```
+
+
+## Educational level
+
+```{r}
+d2 <- d %>% 
+  select(Person_BildAbschluss ) %>% 
+  group_by(Person_BildAbschluss ) %>% 
+  tally() %>%
+  filter(!is.na(Person_BildAbschluss )) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_BildAbschluss , y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) + 
+  coord_flip()
+```
+
+
+
+```{r}
+d2 <- d %>% 
+  select(Person_persEinkommen ) %>% 
+  group_by(Person_persEinkommen ) %>% 
+  tally() %>%
+  filter(!is.na(Person_persEinkommen )) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+d$Person_persEinkommen %>% summary()
+```
+
+```{r}
+ggplot(d, aes(x = Person_persEinkommen)) + 
+  geom_histogram(binwidth = 1500)
+```
+
+## Work sector
+
+```{r}
+
+```{r}
+d2 <- d %>% 
+  select(Person_Einzelhaushalt ) %>% 
+  group_by(Person_Einzelhaushalt ) %>% 
+  tally() %>%
+  filter(!is.na(Person_Einzelhaushalt )) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_Einzelhaushalt , y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) + 
+  coord_flip()
+```
+
+
+## Educational level
+
+```{r}
+d2 <- d %>% 
+  select(Person_Taetigkeitsbereich ) %>% 
+  group_by(Person_Taetigkeitsbereich ) %>% 
+  tally() %>%
+  filter(!is.na(Person_Taetigkeitsbereich )) %>% 
+  mutate(shr = percent(n / sum(n))); d2
+```
+
+```{r}
+ggplot(d2, aes(x = Person_Taetigkeitsbereich , y = n, label = shr)) + 
+  geom_bar(stat = "identity") + 
+  geom_text(position = position_stack(vjust = 0.5)) + 
+  coord_flip()
+```
+```
+
+
+
+
+
+

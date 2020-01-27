@@ -1,0 +1,283 @@
+---
+title: "Descriptive overview"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+    self_contained: true
+---
+
+
+```{r include=FALSE}
+
+library(tidyverse)
+library(labelled)
+library(knitr)
+library(visdat)
+library(scales)
+library(kableExtra)
+library(Hmisc)
+library(corrplot)
+theme_set(theme_bw())
+options(scipen = 99999)
+
+```
+
+```{r include=FALSE}
+d <- read_rds("../../Data/01_preprocessed.rds")
+```
+
+
+
+# Group comparisons
+
+##  Case study areas
+
+Is there a significant difference between life satisfaction of people living within or outside a nature park?
+
+
+```{r}
+
+d1 <- d %>% 
+  select(Meta_Studienregion, Zufriedenheit_allgLeben) %>% 
+  transmute(
+    Region = ifelse(test = Meta_Studienregion == "Kontrollregion", yes = "Kontrollregion", no = "Naturpark"), 
+    Zufriedenheit_allgLeben); d1
+
+d1 %>% 
+  group_by(Region) %>% 
+  summarise(meanZufried = mean(Zufriedenheit_allgLeben, na.rm = T), 
+            sdZufried = sd(Zufriedenheit_allgLeben, na.rm = T), 
+            n = n())
+
+ggplot(d1, aes(x = Zufriedenheit_allgLeben)) + 
+  facet_grid(Region ~ .) +
+  geom_histogram(binwidth = 1)
+
+
+```
+
+
+## Normality
+
+The histogramm show quite clearly that the data is not distributed normally. 
+Nevertheless, I try out a test for normality
+https://towardsdatascience.com/6-ways-to-test-for-a-normal-distribution-which-one-to-use-9dcf47d8fa93
+
+
+```{r}
+ggplot(d, aes(sample = Zufriedenheit_allgLeben)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+
+```{r}
+shapiro.test(d$Zufriedenheit_allgLeben)
+```
+
+The null hypothesis of these tests is that “sample distribution is normal”. If the test is significant, the distribution is non-normal. So if the P value is less than 0.05, you reject the null hypothesis and do not assume a normal distribution. 
+
+So, this confirms our previous conclusion that the data is not normaly distributed.
+
+
+## Comparing regions
+
+```{r}
+res <- wilcox.test(Zufriedenheit_allgLeben ~ Region, 
+                   data = d1, 
+                   exact = FALSE)
+res
+```
+
+With a p value of 0.2735, we cannot reject the 0 hypothesis (that both populations are identical). In other word, there is no significant difference between the Kontroll Regions and the Nature Parks.
+
+
+## Comparing sex
+
+```{r}
+d %>% 
+  select(Person_Gender, Zufriedenheit_allgLeben) %>% 
+  group_by(Person_Gender) %>% 
+  summarise(meanZufried = mean(Zufriedenheit_allgLeben, na.rm = T), 
+            sdZufried = sd(Zufriedenheit_allgLeben, na.rm = T), 
+            n = n())
+
+res <- wilcox.test(Zufriedenheit_allgLeben ~ Person_Gender, 
+                   data = d, 
+                   exact = FALSE);  res
+
+```
+
+Here we have a p value of 0.03555. As this is below the significance level of 0.05 we can conclude the there is a significan difference between women and men. 
+
+
+## Comparing parenthood 
+
+```{r}
+d %>% 
+  group_by(Person_Kinder) %>% 
+  summarise(meanZufried = mean(Zufriedenheit_allgLeben, na.rm = T), 
+            sdZufried = sd(Zufriedenheit_allgLeben, na.rm = T), 
+            n = n())
+
+res <- wilcox.test(Zufriedenheit_allgLeben ~ Person_Kinder, 
+                   data = d, 
+                   exact = FALSE); res
+
+```
+As the p-value is is below the significance level of 0.05 we can conclude the there is a significan difference between parents and non parents. 
+
+
+```{r}
+
+
+d %>%
+  group_by(Person_Aufenhaltssicherheit) %>%
+  summarise(meanZufried = mean(Zufriedenheit_allgLeben, na.rm = T),
+            sdZufried = sd(Zufriedenheit_allgLeben, na.rm = T),
+            n = n())
+
+ggplot(d, aes(x = Person_Aufenhaltssicherheit, Zufriedenheit_allgLeben)) +
+  geom_boxplot()
+  
+
+
+```
+
+
+## Age and life satisfaction
+
+
+```{r}
+
+table(d$Zufriedenheit_allgLeben, d$Person_Alter)
+
+d1 <- d %>%
+  select(Zufriedenheit_allgLeben, Person_Alter) %>%
+  group_by(Person_Alter) %>%
+  summarise(zMean = mean(Zufriedenheit_allgLeben, na.rm = T),
+            n = n()); d1
+
+ggplot(d1, aes(x = Person_Alter, y = zMean)) +
+  geom_bar(stat = "identity")
+
+d2 <- d %>%
+  select(Zufriedenheit_allgLeben, Person_Alter) %>% 
+  group_by(Zufriedenheit_allgLeben, Person_Alter) %>% 
+  tally(); d2
+
+ggplot(d2, aes(x = Person_Alter, y = Zufriedenheit_allgLeben)) + 
+  geom_point(aes(size = n))
+
+rcorr(d$Zufriedenheit_allgLeben, d$Person_Alter)
+
+
+
+```
+
+
+
+```{r}
+
+d1 <- d %>%
+  select(Zufriedenheit_allgLeben, Person_persEinkommen) %>%
+  group_by(Person_persEinkommen) %>%
+  summarise(zMean = mean(Zufriedenheit_allgLeben, na.rm = T),
+            zN = n(),
+            zSD = sd(Zufriedenheit_allgLeben, na.rm = T)); d1
+
+d2 <- d %>%
+  select(Zufriedenheit_allgLeben, Person_persEinkommen) %>% 
+  group_by(Zufriedenheit_allgLeben, Person_persEinkommen) %>% 
+  tally(); d2
+
+ggplot(d2, aes(x = Person_persEinkommen, y = Zufriedenheit_allgLeben)) + 
+  geom_point(aes(size = n))
+
+
+
+
+
+```
+
+
+
+
+## Overall correlations
+
+```{r}
+
+
+d %>% glimpse()
+
+d2 <- d %>% 
+  select(Zufriedenheit_allgLeben, Person_Alter, Person_Aufenhaltssicherheit, 
+         Person_BildAbschluss, Person_persEinkommen) %>% 
+  mutate_all(as.integer); d2
+
+cor1 <- cor(d2, use = "complete.obs", method = "spearman"); cor1
+
+corrplot(corr = cor1, type = "upper", order = "hclust", method = "number",
+         tl.col = "black", tl.srt = 45)
+
+```
+
+
+
+
+# Regression analysis
+
+http://r-statistics.co/Linear-Regression.html
+
+```{r}
+
+
+d2 <- d %>% 
+  select(Zufriedenheit_allgLeben, Person_Alter, Person_Gender, Person_Kinder,
+         Person_Aufenhaltssicherheit, Person_Einzelhaushalt, 
+         Person_BildAbschluss, Person_persEinkommen) %>% 
+  mutate_all(as.integer); d2
+d2 %>% glimpse()
+
+lm1 <- lm(Zufriedenheit_allgLeben ~ 
+            Person_Alter + 
+            Person_Gender + 
+            Person_Kinder + 
+            Person_Einzelhaushalt +
+            Person_Aufenhaltssicherheit + 
+            Person_BildAbschluss + 
+            Person_persEinkommen, 
+          data = d2)
+print(lm1)
+summary(lm1)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

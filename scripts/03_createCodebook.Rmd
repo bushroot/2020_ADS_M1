@@ -1,0 +1,32 @@
+---
+title: "Codebook"
+output:
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+    self_contained: true
+---
+
+```{r setup, }
+library(codebook)
+library(tidyverse)
+```
+
+```{r codebook, echo=FALSE}
+
+dta <- read_rds(path = "../../Data/01_preprocessed.rds")
+
+# If you are not using formr, the codebook package needs to guess which items
+# form a scale. The following line finds item aggregates with names like this:
+# scale = scale_1 + scale_2R + scale_3R
+# identifying these aggregates allows the codebook function to
+# automatically compute reliabilities.
+# However, it will not reverse items automatically.
+# codebook_data <- detect_scales(codebook_data)
+
+
+codebook(results = dta, metadata_json = F, survey_overview = T)
+```
+ 

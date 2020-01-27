@@ -1,0 +1,107 @@
+---
+title: "Data quality"
+output:   
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    code_folding: 'hide'
+    self_contained: true
+---
+
+
+
+
+# Rücklaufquote 
+
+
+
+```{r include=FALSE}
+
+library(tidyverse)
+library(knitr)
+library(visdat)
+library(scales)
+library(kableExtra)
+
+```
+
+
+```{r include=FALSE}
+d <- read_rds("../../Data/01_preprocessed.rds")
+d %>% glimpse()
+```
+
+
+
+```{r include=FALSE}
+
+
+sent <- tibble(Meta_Studienregion = as.character(c("Jurapark Aargau", 
+                                      "Kontrollregion", 
+                                      "Naturpark Gantrisch", 
+                                      "UNESCO Biosphäre Entlebuch")),
+               sent_n = c(3399, 
+                          3399, 
+                          3400, 
+                          3116))
+
+
+results <- d %>% 
+  mutate(Meta_Studienregion = as.character(Meta_Studienregion)) %>% 
+  group_by(Meta_Studienregion) %>% 
+  tally() %>% 
+  left_join(sent, by = "Meta_Studienregion") %>% 
+  mutate(ror_shr = round(n / sent_n, digits = 2)) %>% 
+  select(Studientregion = Meta_Studienregion, 
+         Received = n, 
+         Sent = sent_n, 
+         `Rate of return` = ror_shr) %>% 
+  mutate_at(.vars = vars(`Rate of return`), .funs = funs(percent)) 
+results
+```
+Rate fo return in the different regions is between 22% and 28%.
+
+```{r echo=FALSE}
+results %>% 
+  ungroup() %>%  
+  summarise(Received = sum(Received), Sent = sum(Sent)) %>% 
+  mutate(`Rate of return` = percent(Received / Sent))
+
+```
+
+
+# Missing Values
+
+```{r echo=FALSE}
+vis_dat(d) 
+vis_miss(d)
+```
+
+
+
+```{r echo=FALSE}
+# Calculate share of na's for each variable
+nas <- 
+  bind_cols(
+  d %>% 
+    summarise_all(funs(sum(is.na(.)))) %>% 
+    pivot_longer(cols = everything(), names_to = "variable", values_to = "n_na"),
+  d %>% 
+    summarise_all(funs(sum(!is.na(.)))) %>% 
+    pivot_longer(cols = everything(), names_to = "variable2", values_to = "n_nonna")
+  ) %>% 
+  select(-variable2) %>% 
+  mutate(na_shr = n_na / (n_na + n_nonna)) %>% 
+  mutate(variable = fct_reorder(.f = variable, .x = na_shr)) %>% 
+  arrange(desc(na_shr)); nas
+  
+ggplot(nas, aes(x = variable, y = na_shr, label = percent(na_shr))) + 
+  geom_bar(stat = "identity") + 
+  geom_label(position = position_stack(vjust = 0.5)) +
+  coord_flip()
+
+```
+
+
+

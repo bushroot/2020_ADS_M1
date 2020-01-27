@@ -5,6 +5,6 @@
 .DS_Store
 outputs/
 reports/
-scripts
+!*/03_codebook.html # Does not work
 renv.lock
 Analysis.Rproj
