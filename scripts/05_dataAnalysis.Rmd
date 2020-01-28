@@ -1,5 +1,5 @@
 ---
-title: "Descriptive overview"
+title: "Analysis"
 output:
   html_document:
     toc: true
@@ -31,9 +31,9 @@ d <- read_rds("../../Data/01_preprocessed.rds")
 
 
 
-# Group comparisons
+# Group comparisons
 
-##  Case study areas
+## Case study areas
 
 Is there a significant difference between life satisfaction of people living within or outside a nature park?
 
@@ -54,8 +54,8 @@ d1 %>%
 
 ggplot(d1, aes(x = Zufriedenheit_allgLeben)) + 
   facet_grid(Region ~ .) +
-  geom_histogram(binwidth = 1)
-
+  geom_histogram(binwidth = 1) +
+  labs(x = "Life satisfaction (0 = very low; 10 = very high)", y = "Count")
 
 ```
 
@@ -84,6 +84,9 @@ So, this confirms our previous conclusion that the data is not normaly distribut
 
 
 ## Comparing regions
+2 groups
+unpaired 
+non-parametric
 
 ```{r}
 res <- wilcox.test(Zufriedenheit_allgLeben ~ Region, 
@@ -130,7 +133,25 @@ res <- wilcox.test(Zufriedenheit_allgLeben ~ Person_Kinder,
 ```
 As the p-value is is below the significance level of 0.05 we can conclude the there is a significan difference between parents and non parents. 
 
+## Comparing singel household
 
+```{r}
+d %>% 
+  select(Person_Einzelhaushalt, Zufriedenheit_allgLeben) %>% 
+  group_by(Person_Einzelhaushalt) %>% 
+  summarise(meanZufried = mean(Zufriedenheit_allgLeben, na.rm = T), 
+            sdZufried = sd(Zufriedenheit_allgLeben, na.rm = T), 
+            n = n())
+
+res <- wilcox.test(Zufriedenheit_allgLeben ~ Person_Einzelhaushalt, 
+                   data = d, 
+                   exact = FALSE);  res
+
+```
+
+ 
+## Comparing Residence security
+ 
 ```{r}
 
 
@@ -145,10 +166,13 @@ ggplot(d, aes(x = Person_Aufenhaltssicherheit, Zufriedenheit_allgLeben)) +
   
 
 
+
+
+
 ```
 
 
-## Age and life satisfaction
+## Age and life satisfaction
 
 
 ```{r}
@@ -162,7 +186,9 @@ d1 <- d %>%
             n = n()); d1
 
 ggplot(d1, aes(x = Person_Alter, y = zMean)) +
-  geom_bar(stat = "identity")
+  geom_line() + 
+  geom_smooth(method = "lm")+
+  labs(y = "Life satisfaction \n(Mean per age)", x = "Age")
 
 d2 <- d %>%
   select(Zufriedenheit_allgLeben, Person_Alter) %>% 
@@ -174,11 +200,20 @@ ggplot(d2, aes(x = Person_Alter, y = Zufriedenheit_allgLeben)) +
 
 rcorr(d$Zufriedenheit_allgLeben, d$Person_Alter)
 
-
+ggplot(d2, aes(x = Person_Alter, y = Zufriedenheit_allgLeben, fill = n)) + 
+  geom_tile() + 
+  labs(x = "Age", y = "Life satisfaction")
 
 ```
 
 
+```{r}
+kruskal.test(data = d, Zufriedenheit_allgLeben ~ Person_Alter)
+```
+
+
+
+## Income
 
 ```{r}
 
@@ -189,24 +224,38 @@ d1 <- d %>%
             zN = n(),
             zSD = sd(Zufriedenheit_allgLeben, na.rm = T)); d1
 
+ggplot(d1, aes(x = Person_persEinkommen, y = zMean)) +
+  geom_bar(stat = "identity") + 
+  geom_line() +
+  geom_smooth(method = "lm")+
+  labs(y = "Life satisfaction\n (Mean per income group)", 
+       x = "Income (CHF per month)")
+
+
 d2 <- d %>%
   select(Zufriedenheit_allgLeben, Person_persEinkommen) %>% 
   group_by(Zufriedenheit_allgLeben, Person_persEinkommen) %>% 
   tally(); d2
 
-ggplot(d2, aes(x = Person_persEinkommen, y = Zufriedenheit_allgLeben)) + 
-  geom_point(aes(size = n))
 
 
+ggplot(d2, aes(x = Person_persEinkommen, 
+               y = Zufriedenheit_allgLeben, 
+               size = n)) + 
+  geom_point(aes(size = n)) + 
+  labs(x = "Income (CHF per month)", y = "Life satisfaction")
 
 
 
 ```
 
 
+```{r}
+kruskal.test(data = d, Zufriedenheit_allgLeben ~ Person_persEinkommen)
+```
 
 
-## Overall correlations
+# Overall correlations
 
 ```{r}
 
@@ -214,8 +263,7 @@ ggplot(d2, aes(x = Person_persEinkommen, y = Zufriedenheit_allgLeben)) +
 d %>% glimpse()
 
 d2 <- d %>% 
-  select(Zufriedenheit_allgLeben, Person_Alter, Person_Aufenhaltssicherheit, 
-         Person_BildAbschluss, Person_persEinkommen) %>% 
+  select(Zufriedenheit_allgLeben, Person_Alter,  Person_persEinkommen) %>% 
   mutate_all(as.integer); d2
 
 cor1 <- cor(d2, use = "complete.obs", method = "spearman"); cor1
@@ -232,29 +280,33 @@ corrplot(corr = cor1, type = "upper", order = "hclust", method = "number",
 
 http://r-statistics.co/Linear-Regression.html
 
+
 ```{r}
-
-
-d2 <- d %>% 
-  select(Zufriedenheit_allgLeben, Person_Alter, Person_Gender, Person_Kinder,
-         Person_Aufenhaltssicherheit, Person_Einzelhaushalt, 
-         Person_BildAbschluss, Person_persEinkommen) %>% 
-  mutate_all(as.integer); d2
-d2 %>% glimpse()
-
 lm1 <- lm(Zufriedenheit_allgLeben ~ 
             Person_Alter + 
             Person_Gender + 
             Person_Kinder + 
             Person_Einzelhaushalt +
-            Person_Aufenhaltssicherheit + 
-            Person_BildAbschluss + 
+            # Person_Aufenhddaltssicherheit + 
+            # Person_BildAbschluss + 
             Person_persEinkommen, 
-          data = d2)
+          data = d)
 print(lm1)
 summary(lm1)
 
+
 ```
+
+
+- https://towardsdatascience.com/assumptions-of-linear-regression-algorithm-ed9ea32224e1
+http://r-statistics.co/Assumptions-of-Linear-Regression.html
+
+
+- The age, gender and household composition seem to have an significant impact on life satisfaction. 
+- However, the overall fit of the model is very low (R squared = 0.03009). I.e. the model explains very little of the variability
+- Possible improvement: check better for assumptions, e.g. multicollinearity, normal distribution of error terms and homoscedasticity
+
+
 
 
 

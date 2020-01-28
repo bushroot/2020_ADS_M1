@@ -73,7 +73,8 @@ ggplot(d2, aes(x = Meta_Studienregion, y = n, label = n)) +
 
 ```{r}
 ggplot(d, aes(x = Person_Alter)) + 
-  geom_histogram(binwidth = 1)
+  geom_histogram(binwidth = 1) +
+  labs(x = "Age", y = "Count")
 ```
 
 ```{r}
